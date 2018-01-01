@@ -14,8 +14,34 @@
 		</style>
 	</head>
 	<body>
-		<button type="button" id="timer">10 seconds GO!</button>
+		<button type="button" id="timer" onclick="startTimer()">10 seconds GO!</button>
 	<script>
+var timer = document.getElementById("timer");
+var start = undefined;
+var limit = 10 * 1000;
+
+function startTimer() {
+	start = performance.now();
+	timer.style.background = "rgb(255,255,255)";
+}
+
+function animate(time) {
+	if (start !== undefined) {
+		var elapsed = time - start;
+
+		if (elapsed > limit) {
+			timer.style.background = "rgb(255,0,0)";
+
+			timer.innerHTML = "TIMES UP<br>(restart)";
+		} else {
+			timer.innerHTML = (10 - elapsed / 1000).toString().substr(0,3) + "<br>(restart)";
+		}
+	}
+
+	window.requestAnimationFrame(animate);
+}
+
+window.requestAnimationFrame(animate);
 	</script>
 	</body>
 </html>
