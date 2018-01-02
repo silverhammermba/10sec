@@ -5,43 +5,141 @@
 		<style>
 #timer {
 	position: absolute;
-	height: 100%;
-	width: 100%;
 	top: 0;
 	left: 0;
+}
+#hint {
 	font-size: 50pt;
+	text-align: center;
 }
 		</style>
 	</head>
 	<body>
-		<button type="button" id="timer" onclick="startTimer()">10 seconds GO!</button>
+		<canvas id="timer"></canvas>
+		<p id="hint">tap to start/restart countdown</span>
 	<script>
-var timer = document.getElementById("timer");
-var start = undefined;
-var limit = 10 * 1000;
+"use strict";
 
-function startTimer() {
+/* ARBITRARY GLOBALS */
+
+// timer limit in seconds
+var limits = 10;
+// circle radius in terms of % of screen size
+var radiusPerc = 0.85;
+
+// background colors in linear RGB
+var startColor = [0.7, 0.7, 1];
+var endColor = [1, 0, 0];
+
+/* COMPUTED GLOBALS */
+
+var limitms = limits * 1000;
+var start;
+var running = false;
+var prevFrame;
+var radius;
+
+var context = timer.getContext('2d');
+
+function updateSize() {
+	timer.width = window.innerWidth;
+	timer.height = window.innerHeight;
+	radius = radiusPerc * Math.min(timer.width, timer.height) / 2;
+	hint.parentElement.removeChild(hint);
+
+	// stop is only drawn once, so redraw
+	if (start && !running) stopCountdown(false);
+}
+
+function startCountdown() {
 	start = performance.now();
-	timer.style.background = "rgb(255,255,255)";
+	running = true;
+
+	// only one animation frame request at once
+	window.cancelAnimationFrame(prevFrame);
+	prevFrame = window.requestAnimationFrame(updateCountdown);
 }
 
-function animate(time) {
-	if (start !== undefined) {
-		var elapsed = time - start;
+function stopCountdown(buzz) {
+	// TODO play sound
+	running = false;
 
-		if (elapsed > limit) {
-			timer.style.background = "rgb(255,0,0)";
+	context.fillStyle = "#ff0000";
+	context.fillRect(0, 0, timer.width, timer.height);
 
-			timer.innerHTML = "TIMES UP<br>(restart)";
-		} else {
-			timer.innerHTML = (10 - elapsed / 1000).toString().substr(0,3) + "<br>(restart)";
-		}
-	}
+	context.lineWidth = radius / 6;
 
-	window.requestAnimationFrame(animate);
+	context.beginPath();
+	context.arc(
+		timer.width / 2,
+		timer.height / 2,
+		radius - context.lineWidth / 2,
+		0,
+		2 * Math.PI,
+		false
+	);
+	context.strokeStyle = "#ffffff";
+	context.stroke();
 }
 
-window.requestAnimationFrame(animate);
+var alpha = 0.055;
+// linear 0-1 to nonlinear 0-1
+function linear2gamma(comp) {
+	if (comp <= 0.0031308) return comp * 12.92;
+	return (1 + alpha) * Math.pow(comp, 1 / 2.4) - alpha;
+}
+
+function clamp(min, x, max) {
+	return Math.min(Math.max(x, min), max);
+}
+
+// 0-1 to 0-255 integer
+function to8bit(x) {
+	return clamp(0, Math.round(x * 255), 255);
+}
+
+function updateCountdown(time) {
+	var elapsed = time - start;
+
+	if (elapsed > limitms) return stopCountdown(true);
+
+	// decreases from 1 to 0
+	var progress = (limits - elapsed / 1000) / limits;
+
+	var bg = [
+		endColor[0] * (1 - progress) + startColor[0] * progress,
+		endColor[1] * (1 - progress) + startColor[1] * progress,
+		endColor[2] * (1 - progress) + startColor[2] * progress
+	];
+
+	context.fillStyle = "rgb(" +
+		to8bit(linear2gamma(bg[0])) + "," +
+		to8bit(linear2gamma(bg[1])) + "," +
+		to8bit(linear2gamma(bg[2])) + ")";
+	context.fillRect(0, 0, timer.width, timer.height);
+
+	context.fillStyle = "#000000";
+
+	context.beginPath();
+	context.moveTo(timer.width / 2, timer.height / 2);
+	context.arc(
+		timer.width / 2,
+		timer.height / 2,
+		radius,
+		3 * Math.PI / 2 - 2 * Math.PI * progress,
+		3 * Math.PI / 2,
+		false
+	);
+	context.fill();
+
+	prevFrame = window.requestAnimationFrame(updateCountdown);
+}
+
+updateSize();
+window.addEventListener("resize", updateSize);
+window.addEventListener("touchstart", startCountdown);
+window.addEventListener("mousedown", startCountdown);
+window.addEventListener("keydown", startCountdown);
 	</script>
 	</body>
 </html>
