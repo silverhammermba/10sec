@@ -20,6 +20,8 @@
 		</style>
 	</head>
 	<body>
+		<audio id="stopSound" src="stop.wav"></audio>
+		<audio id="startSound" src="restart.wav"></audio>
 		<canvas id="timer"></canvas>
 	<script>
 "use strict";
@@ -58,14 +60,17 @@ function startCountdown() {
 	start = performance.now();
 	running = true;
 
+	startSound.play();
+
 	// only one animation frame request at once
 	window.cancelAnimationFrame(prevFrame);
 	prevFrame = window.requestAnimationFrame(updateCountdown);
 }
 
 function stopCountdown(buzz) {
-	// TODO play sound
 	running = false;
+
+	if (buzz) stopSound.play();
 
 	context.fillStyle = "#ff0000";
 	context.fillRect(0, 0, timer.width, timer.height);
