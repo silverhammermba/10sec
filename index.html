@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>10 Second Stories</title>
+		<title>10 Second Countdown</title>
+		<link rel="apple-touch-icon" sizes="180x180" href="https://silverhammermba.github.io/10sec/apple-touch-icon.png">
+		<link rel="icon" type="image/png" sizes="32x32" href="https://silverhammermba.github.io/10sec/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="https://silverhammermba.github.io/10sec/favicon-16x16.png">
+		<link rel="manifest" href="https://silverhammermba.github.io/10sec/manifest.json">
+		<link rel="mask-icon" href="https://silverhammermba.github.io/10sec/safari-pinned-tab.svg" color="#5bbad5">
+		<link rel="shortcut icon" href="https://silverhammermba.github.io/10sec/favicon.ico">
+		<meta name="msapplication-config" content="https://silverhammermba.github.io/10sec/browserconfig.xml">
+		<meta name="theme-color" content="#ffffff">
 		<style>
 #timer {
 	position: absolute;
 	top: 0;
 	left: 0;
 }
-#hint {
-	font-size: 50pt;
-	text-align: center;
-}
 		</style>
 	</head>
 	<body>
 		<canvas id="timer"></canvas>
-		<p id="hint">tap to start/restart countdown</span>
 	<script>
 "use strict";
 
@@ -137,9 +140,11 @@ function updateCountdown(time) {
 
 updateSize();
 window.addEventListener("resize", updateSize);
-window.addEventListener("touchstart", startCountdown);
-window.addEventListener("mousedown", startCountdown);
-window.addEventListener("keydown", startCountdown);
+
+if ('ontouchstart' in document.documentElement)
+	window.addEventListener("touchstart", startCountdown);
+else
+	window.addEventListener("mousedown", startCountdown);
 	</script>
 	</body>
 </html>
