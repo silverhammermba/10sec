@@ -17,12 +17,23 @@
 	top: 0;
 	left: 0;
 }
+#dummy {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0);
+	border: none;
+}
 		</style>
 	</head>
 	<body>
-		<audio id="stopSound" src="stop.wav"></audio>
-		<audio id="startSound" src="restart.wav"></audio>
+		<!-- TODO won't play sound on mobile because you need direct interaction
+	  maybe try adding a big screen-covering button, hitting that triggers the sound once and deletes itself -->
+		<audio id="sound"></audio>
 		<canvas id="timer"></canvas>
+		<button id="dummy" onclick="startSound()"></button>
 	<script>
 "use strict";
 
@@ -36,6 +47,8 @@ var radiusPerc = 0.85;
 // background colors in linear RGB
 var startColor = [0.7, 0.7, 1];
 var endColor = [1, 0, 0];
+
+var text = 'TAP';
 
 /* COMPUTED GLOBALS */
 
@@ -53,14 +66,21 @@ function updateSize() {
 	radius = radiusPerc * Math.min(timer.width, timer.height) / 2;
 
 	// stop is only drawn once, so redraw
-	if (start && !running) stopCountdown(false);
+	if (!running) stopCountdown(false);
+}
+
+function startSound() {
+	sound.play();
+	dummy.parentElement.removeChild(dummy);
+	startCountdown();
 }
 
 function startCountdown() {
 	start = performance.now();
 	running = true;
 
-	startSound.play();
+	sound.src = "restart.wav";
+	sound.play();
 
 	// only one animation frame request at once
 	window.cancelAnimationFrame(prevFrame);
@@ -70,10 +90,29 @@ function startCountdown() {
 function stopCountdown(buzz) {
 	running = false;
 
-	if (buzz) stopSound.play();
+	if (buzz) {
+		sound.src = "stop.wav";
+		sound.play();
+	}
 
 	context.fillStyle = "#ff0000";
 	context.fillRect(0, 0, timer.width, timer.height);
+
+	context.textAlign = 'center';
+	context.textBaseline = 'middle';
+
+	var fontSize = 200;
+
+	context.font = fontSize + 'pt sans-serif';
+	var size = context.measureText(text);
+	var targetWidth = 0.8 * (radius - context.lineWidth);
+	while (size.width > targetWidth) {
+		fontSize -= 10;
+		context.font = fontSize + 'pt sans-serif';
+		size = context.measureText(text);
+	}
+	context.fillStyle = "#ffffff";
+	context.fillText(text, timer.width / 2, timer.height / 2);
 
 	context.lineWidth = radius / 6;
 
