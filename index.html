@@ -39,22 +39,43 @@
 	<script>
 "use strict";
 
+/* COLOR FUNCTIONS */
+
+var alpha = 0.055;
+// linear 0-1 to nonlinear 0-1
+function linear2gamma(comp) {
+	if (comp <= 0.0031308) return comp * 12.92;
+	return (1 + alpha) * Math.pow(comp, 1 / 2.4) - alpha;
+}
+
+function clamp(min, x, max) {
+	return Math.min(Math.max(x, min), max);
+}
+
+// 0-1 to 0-255 integer
+function to8bit(x) {
+	return clamp(0, Math.round(x * 255), 255);
+}
+
 /* ARBITRARY GLOBALS */
 
 // timer limit in seconds
-var limits = 10;
+var limits = 1;
 // circle radius in terms of % of screen size
 var radiusPerc = 0.85;
 
 // background colors in linear RGB
 var startColor = [0.8, 0.8, 0.8];
 var endColor = [0.2, 0.2, 0.2];
+var endColorRGB = "rgb(" +
+		to8bit(linear2gamma(endColor[0])) + "," +
+		to8bit(linear2gamma(endColor[1])) + "," +
+		to8bit(linear2gamma(endColor[2])) + ")";
 
 var text = 'TAP';
 
 /* COMPUTED GLOBALS */
 
-var limitms = limits * 1000;
 var start;
 var running = false;
 var prevFrame;
@@ -113,7 +134,7 @@ function stopCountdown(buzz) {
 		sound.play();
 	}
 
-	context.fillStyle = "#ff0000";
+	context.fillStyle = endColorRGB;
 	context.fillRect(0, 0, canv.width, canv.height);
 
 	context.textAlign = 'center';
@@ -147,29 +168,21 @@ function stopCountdown(buzz) {
 	context.stroke();
 }
 
-var alpha = 0.055;
-// linear 0-1 to nonlinear 0-1
-function linear2gamma(comp) {
-	if (comp <= 0.0031308) return comp * 12.92;
-	return (1 + alpha) * Math.pow(comp, 1 / 2.4) - alpha;
-}
-
-function clamp(min, x, max) {
-	return Math.min(Math.max(x, min), max);
-}
-
-// 0-1 to 0-255 integer
-function to8bit(x) {
-	return clamp(0, Math.round(x * 255), 255);
-}
-
 function redraw(time) {
 	var elapsed = time - start;
 
-	if (elapsed > limitms) return stopCountdown(true);
+	var thislimit = 0;
+	var nextlimit = limits;
+
+	for (var i = 0; i < generatedColors.length; ++i) {
+		thislimit += nextlimit;
+		nextlimit /= 2;
+	}
+
+	if (elapsed > (thislimit * 1000)) return stopCountdown(true);
 
 	// decreases from 1 to 0
-	var progress = (limits - elapsed / 1000) / limits;
+	var progress = (thislimit - elapsed / 1000) / thislimit;
 
 	var bg = [
 		endColor[0] * (1 - progress) + startColor[0] * progress,
@@ -183,10 +196,7 @@ function redraw(time) {
 		to8bit(linear2gamma(bg[2])) + ")";
 	context.fillRect(0, 0, canv.width, canv.height);
 
-	context.fillStyle = "rgb(" +
-		to8bit(linear2gamma(endColor[0])) + "," +
-		to8bit(linear2gamma(endColor[1])) + "," +
-		to8bit(linear2gamma(endColor[2])) + ")";
+	context.fillStyle = endColorRGB;
 
 	context.beginPath();
 	context.moveTo(canv.width / 2, canv.height / 2);
@@ -208,8 +218,8 @@ function redraw(time) {
 function drawSquares() {
 	if (generatedColors.length === 0) return;
 
-	var squareWidth = 100;
-	var gap = 20;
+	var squareWidth = Math.min(canv.width, canv.height) / 4.2;
+	var gap = squareWidth / 5;
 
 	var squaresPer = Math.floor((canv.width - gap) / (squareWidth + gap));
 
