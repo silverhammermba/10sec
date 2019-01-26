@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 	<head>
+		<meta charset="utf-8">
+
 		<title>10 seconds</title>
 		<link rel="apple-touch-icon" sizes="180x180" href="https://silverhammermba.github.io/10sec/apple-touch-icon.png">
 		<link rel="icon" type="image/png" sizes="32x32" href="https://silverhammermba.github.io/10sec/favicon-32x32.png">
@@ -12,7 +14,7 @@
 		<meta name="theme-color" content="#ffffff">
 		<meta name="viewport" content="user-scalable=no">
 		<style>
-#timer {
+#canv {
 	position: absolute;
 	top: 0;
 	left: 0;
@@ -32,7 +34,7 @@
 		<!-- TODO won't play sound on mobile because you need direct interaction
 	  maybe try adding a big screen-covering button, hitting that triggers the sound once and deletes itself -->
 		<audio id="sound"></audio>
-		<canvas id="timer"></canvas>
+		<canvas id="canv"></canvas>
 		<button id="dummy" onclick="startSound()"></button>
 	<script>
 "use strict";
@@ -45,8 +47,8 @@ var limits = 10;
 var radiusPerc = 0.85;
 
 // background colors in linear RGB
-var startColor = [0.7, 0.7, 1];
-var endColor = [1, 0, 0];
+var startColor = [0.8, 0.8, 0.8];
+var endColor = [0.2, 0.2, 0.2];
 
 var text = 'TAP';
 
@@ -58,12 +60,14 @@ var running = false;
 var prevFrame;
 var radius;
 
-var context = timer.getContext('2d');
+var generatedColors = [];
+
+var context = canv.getContext('2d');
 
 function updateSize() {
-	timer.width = window.innerWidth;
-	timer.height = window.innerHeight;
-	radius = radiusPerc * Math.min(timer.width, timer.height) / 2;
+	canv.width = window.innerWidth;
+	canv.height = window.innerHeight;
+	radius = radiusPerc * Math.min(canv.width, canv.height) / 2;
 
 	// stop is only drawn once, so redraw
 	if (!running) stopCountdown(false);
@@ -72,23 +76,37 @@ function updateSize() {
 function startSound() {
 	sound.play();
 	dummy.parentElement.removeChild(dummy);
-	startCountdown();
+	//genColor();
 }
 
-function startCountdown() {
+function genColor() {
 	start = performance.now();
 	running = true;
 
+	generatedColors.push(randomColor());
+
 	sound.src = "restart.wav";
-	sound.play();
+	//sound.play();
 
 	// only one animation frame request at once
 	window.cancelAnimationFrame(prevFrame);
-	prevFrame = window.requestAnimationFrame(updateCountdown);
+	prevFrame = window.requestAnimationFrame(redraw);
+}
+
+function randomColor() {
+	var r = Math.random() * 13;
+
+	if (r < 1) { return "#0000ff"; }
+	if (r < 3) { return "#ff0000"; }
+	if (r < 5) { return "#00ff00"; }
+	if (r < 9) { return "#ffffff"; }
+	             return "#000000";
 }
 
 function stopCountdown(buzz) {
 	running = false;
+
+	generatedColors = [];
 
 	if (buzz) {
 		sound.src = "stop.wav";
@@ -96,7 +114,7 @@ function stopCountdown(buzz) {
 	}
 
 	context.fillStyle = "#ff0000";
-	context.fillRect(0, 0, timer.width, timer.height);
+	context.fillRect(0, 0, canv.width, canv.height);
 
 	context.textAlign = 'center';
 	context.textBaseline = 'middle';
@@ -112,14 +130,14 @@ function stopCountdown(buzz) {
 		size = context.measureText(text);
 	}
 	context.fillStyle = "#ffffff";
-	context.fillText(text, timer.width / 2, timer.height / 2);
+	context.fillText(text, canv.width / 2, canv.height / 2);
 
 	context.lineWidth = radius / 6;
 
 	context.beginPath();
 	context.arc(
-		timer.width / 2,
-		timer.height / 2,
+		canv.width / 2,
+		canv.height / 2,
 		radius - context.lineWidth / 2,
 		0,
 		2 * Math.PI,
@@ -145,7 +163,7 @@ function to8bit(x) {
 	return clamp(0, Math.round(x * 255), 255);
 }
 
-function updateCountdown(time) {
+function redraw(time) {
 	var elapsed = time - start;
 
 	if (elapsed > limitms) return stopCountdown(true);
@@ -163,15 +181,18 @@ function updateCountdown(time) {
 		to8bit(linear2gamma(bg[0])) + "," +
 		to8bit(linear2gamma(bg[1])) + "," +
 		to8bit(linear2gamma(bg[2])) + ")";
-	context.fillRect(0, 0, timer.width, timer.height);
+	context.fillRect(0, 0, canv.width, canv.height);
 
-	context.fillStyle = "#000000";
+	context.fillStyle = "rgb(" +
+		to8bit(linear2gamma(endColor[0])) + "," +
+		to8bit(linear2gamma(endColor[1])) + "," +
+		to8bit(linear2gamma(endColor[2])) + ")";
 
 	context.beginPath();
-	context.moveTo(timer.width / 2, timer.height / 2);
+	context.moveTo(canv.width / 2, canv.height / 2);
 	context.arc(
-		timer.width / 2,
-		timer.height / 2,
+		canv.width / 2,
+		canv.height / 2,
 		radius,
 		3 * Math.PI / 2 - 2 * Math.PI * progress,
 		3 * Math.PI / 2,
@@ -179,16 +200,52 @@ function updateCountdown(time) {
 	);
 	context.fill();
 
-	prevFrame = window.requestAnimationFrame(updateCountdown);
+	drawSquares();
+
+	prevFrame = window.requestAnimationFrame(redraw);
+}
+
+function drawSquares() {
+	if (generatedColors.length === 0) return;
+
+	var squareWidth = 100;
+	var gap = 20;
+
+	var squaresPer = Math.floor((canv.width - gap) / (squareWidth + gap));
+
+	if (squaresPer < 1) {
+		squareWidth = canv.width * 0.8;
+		gap = canv.width * 0.1;
+		squaresPer = 1;
+	}
+
+	var rows = Math.ceil(generatedColors.length / squaresPer);
+	var rowStart = (canv.height - (rows * (squareWidth + gap) - gap)) / 2;
+
+	for (var i = 0; i < generatedColors.length; ++i) {
+		var row = Math.floor(i / squaresPer);
+		var column = i % squaresPer;
+
+		var squaresThisRow = Math.min(generatedColors.length - row * squaresPer, squaresPer);
+		var colStart = (canv.width - ((squareWidth + gap) * squaresThisRow - gap)) / 2;
+
+		var x = colStart + (squareWidth + gap) * column;
+		var y = rowStart + (squareWidth + gap) * row;
+		context.fillStyle = generatedColors[i];
+		context.strokeStyle = "#000000";
+		context.lineWidth = 10;
+		context.fillRect(x, y, squareWidth, squareWidth);
+		context.strokeRect(x, y, squareWidth, squareWidth);
+	}
 }
 
 updateSize();
 window.addEventListener("resize", updateSize);
 
 if ('ontouchstart' in document.documentElement)
-	window.addEventListener("touchstart", startCountdown);
+	window.addEventListener("touchstart", genColor);
 else
-	window.addEventListener("mousedown", startCountdown);
+	window.addEventListener("mousedown", genColor);
 	</script>
 	</body>
 </html>
