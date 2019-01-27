@@ -141,7 +141,7 @@ function stopCountdown(buzz) {
 		sound.play();
 	}
 
-	context.fillStyle = "#ff00ff";
+	context.fillStyle = endColorRGB;
 	context.fillRect(0, 0, canv.width, canv.height);
 
 	context.textAlign = 'center';
@@ -183,7 +183,7 @@ function redraw(time) {
 
 	for (var i = 0; i < generatedColors.length; ++i) {
 		thislimit += nextlimit;
-		nextlimit /= 2;
+		nextlimit *= 0.7;
 	}
 
 	if (elapsed > (thislimit * 1000)) return stopCountdown(true);
